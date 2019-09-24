@@ -78,8 +78,8 @@
 		40D213D3233A06ED00C79A23 /* LBTextField */ = {
 			isa = PBXGroup;
 			children = (
-				40D213D4233A06ED00C79A23 /* LBTextField.m */,
 				40D213D5233A06ED00C79A23 /* LBTextField.h */,
+				40D213D4233A06ED00C79A23 /* LBTextField.m */,
 			);
 			path = LBTextField;
 			sourceTree = "<group>";
