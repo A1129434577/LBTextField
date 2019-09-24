@@ -9,6 +9,6 @@ Pod::Spec.new do |spec|
   spec.platform     = :ios
   spec.ios.deployment_target = '8.0'
   spec.source       = { :git => 'https://github.com/A1129434577/LBTextField.git', :tag => spec.version.to_s }
-  spec.source_files  = "LBTextField", "LBTextField/**/*.{h,m}"
+  spec.source_files  = "LBTextField/**/*.{h,m}"
   spec.requires_arc = true
 end
