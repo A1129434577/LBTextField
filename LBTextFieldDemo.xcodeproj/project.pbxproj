@@ -13,6 +13,7 @@
 		40D213A5233A049C00C79A23 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 40D213A3233A049C00C79A23 /* LaunchScreen.storyboard */; };
 		40D213A8233A049C00C79A23 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 40D213A7233A049C00C79A23 /* main.m */; };
 		40D213D6233A06ED00C79A23 /* LBTextField.m in Sources */ = {isa = PBXBuildFile; fileRef = 40D213D4233A06ED00C79A23 /* LBTextField.m */; };
+		40D213FD233A11A800C79A23 /* LBTextField.podspec in Resources */ = {isa = PBXBuildFile; fileRef = 40D213FC233A11A800C79A23 /* LBTextField.podspec */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		40D213A7233A049C00C79A23 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		40D213D4233A06ED00C79A23 /* LBTextField.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LBTextField.m; sourceTree = "<group>"; };
 		40D213D5233A06ED00C79A23 /* LBTextField.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LBTextField.h; sourceTree = "<group>"; };
+		40D213FC233A11A800C79A23 /* LBTextField.podspec */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LBTextField.podspec; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,6 +45,7 @@
 		40D21389233A049800C79A23 = {
 			isa = PBXGroup;
 			children = (
+				40D213FC233A11A800C79A23 /* LBTextField.podspec */,
 				40D21394233A049800C79A23 /* LBTextFieldDemo */,
 				40D21393233A049800C79A23 /* Products */,
 			);
@@ -138,6 +141,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				40D213FD233A11A800C79A23 /* LBTextField.podspec in Resources */,
 				40D213A5233A049C00C79A23 /* LaunchScreen.storyboard in Resources */,
 				40D213A2233A049C00C79A23 /* Assets.xcassets in Resources */,
 			);
