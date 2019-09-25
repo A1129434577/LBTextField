@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name         = "LBTextField"
-  spec.version      = "0.0.1"
+  spec.version      = "0.0.2"
   spec.summary      = "自定义TextField"
   spec.description  = "高效自定义TextField，功能包括Format输入、输入字符限制、输入格式错误判定、输入长度控制。"
   spec.homepage     = "https://github.com/A1129434577/LBTextField"
