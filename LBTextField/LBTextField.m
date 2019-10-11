@@ -7,7 +7,8 @@
 //
 
 #import "LBTextField.h"
-@interface LBTextField ()
+@interface LBTextField ()<UITextFieldDelegate>
+@property (nonatomic,strong)NSObject<UITextFieldDelegate> *realProxy;//真实代理（LBTextField本身作为消息转发虚拟代理）
 @property (nonatomic,strong)NSArray *partFirstFormat;//@INT_MAX之前的称为partFirst
 @property (nonatomic,strong)NSArray *partSecondReverseFormat;
 @property (nonatomic,strong)NSArray<NSString *> *allDelimiters;
@@ -34,8 +35,13 @@
     self = [super initWithFrame:frame];
     if (self) {
         self.clearButtonMode = UITextFieldViewModeWhileEditing;
+        [super setDelegate:self];
     }
     return self;
+}
+-(void)setDelegate:(id<UITextFieldDelegate>)delegate{
+    self.realProxy = delegate;
+    [super setDelegate:self];
 }
 
 -(void)setLb_textFormatter:(NSArray *)lb_textFormatter{
@@ -320,165 +326,158 @@
     return string;
 }
 
-+(BOOL)textField:(LBTextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string{
-    if ([textField isKindOfClass:[LBTextField class]]) {
-        //@INT_MAX之前的称为第一部分
-        //
-        //1.转移操作对象到没有分隔符的text上
-        //2.再将没有分隔符的text加上分隔符赋值给textField
-        __block NSMutableString *text = textField.text.mutableCopy;
+-(BOOL)textField:(LBTextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string{
+    //如果真实代理实现了这个代理方法优先考虑真实代理的返回值，所谓用者至上
+    if ([self.realProxy respondsToSelector:@selector(textField:shouldChangeCharactersInRange:replacementString:)]) {
+        BOOL realProxyReturnVuale = [self.realProxy textField:textField shouldChangeCharactersInRange:range replacementString:string];
+        if (!realProxyReturnVuale) {
+            return realProxyReturnVuale;
+        }
+    }
+    //@INT_MAX之前的称为第一部分
+    //1.转移操作对象到没有分隔符的text上
+    //2.再将没有分隔符的text加上分隔符赋值给textField
+    __block NSMutableString *text = textField.text.mutableCopy;
+    
+    if (string.length && (textField.lb_inputPredicate && ![textField.lb_inputPredicate evaluateWithObject:string])) {//输入的格式不符合限制输入
+        return NO;
+    }
+    else if (string.length && textField.lb_maxLength && (text.length == textField.lb_maxLength.integerValue)){//输入的时候长度已满限制输入
+        return NO;
+    }
+    else if (textField.lb_textFormatter){
+        UITextPosition *position =textField.selectedTextRange.start;
         
-        if (string.length && (textField.lb_inputPredicate && ![textField.lb_inputPredicate evaluateWithObject:string])) {//输入的格式不符合限制输入
-            return NO;
-        }
-        else if (string.length && textField.lb_maxLength && (text.length == textField.lb_maxLength.integerValue)){//输入的时候长度已满限制输入
-            return NO;
-        }
-        else if (textField.lb_textFormatter){
-            UITextPosition *position =textField.selectedTextRange.start;
-            
-            //textField的原text
-            NSString *mayDelimiterText = [textField mayDelimiterText];
-            
-            //第一部分带分隔符的text最后一个range，用于计算第一部分的长度
-            NSRange partFirstLastDeliniterRange =  NSRangeFromString(textField.partFirstDelimiterRanges.lastObject);
-            
-            NSMutableArray<NSString *> *allDelimiterRanges  = textField.partFirstDelimiterRanges.mutableCopy;
-            NSMutableArray *partSecondReverseDelimiterRealRanges = [NSMutableArray array];
-            [textField.partSecondReverseDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSRange range = NSRangeFromString(obj);
-                NSInteger location = mayDelimiterText.length-range.location-range.length;
-            //第一部分的长度加上第二部分当前range的长度得出如果有第二部分当前分隔符mayDelimiterText要满足的最低长度
-                NSInteger havePartSecondMinLenght =
-                partFirstLastDeliniterRange.location
-                +partFirstLastDeliniterRange.length
-                +NSRangeFromString(obj).location
-                +NSRangeFromString(obj).length;
-                if (mayDelimiterText.length > havePartSecondMinLenght) {
-                    range.location = location;
-                    [partSecondReverseDelimiterRealRanges addObject:NSStringFromRange(range)];
+        //textField的原text
+        NSString *mayDelimiterText = [textField mayDelimiterText];
+        
+        //第一部分带分隔符的text最后一个range，用于计算第一部分的长度
+        NSRange partFirstLastDeliniterRange =  NSRangeFromString(textField.partFirstDelimiterRanges.lastObject);
+        
+        NSMutableArray<NSString *> *allDelimiterRanges  = textField.partFirstDelimiterRanges.mutableCopy;
+        NSMutableArray *partSecondReverseDelimiterRealRanges = [NSMutableArray array];
+        [textField.partSecondReverseDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSRange range = NSRangeFromString(obj);
+            NSInteger location = mayDelimiterText.length-range.location-range.length;
+        //第一部分的长度加上第二部分当前range的长度得出如果有第二部分当前分隔符mayDelimiterText要满足的最低长度
+            NSInteger havePartSecondMinLenght =
+            partFirstLastDeliniterRange.location
+            +partFirstLastDeliniterRange.length
+            +NSRangeFromString(obj).location
+            +NSRangeFromString(obj).length;
+            if (mayDelimiterText.length > havePartSecondMinLenght) {
+                range.location = location;
+                [partSecondReverseDelimiterRealRanges addObject:NSStringFromRange(range)];
+                
+            }
+        }];
+        //将倒序的ranges正序排列
+        [allDelimiterRanges addObjectsFromArray:partSecondReverseDelimiterRealRanges.reverseObjectEnumerator.allObjects];
+        //当用户删除或者替换的range包含分隔符，将整个分隔符一起替换，所以将重新计算range
+        __block NSRange newRange = range;
+        [allDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSRange delimiterRange = NSRangeFromString(obj);
+            if (NSIntersectionRange(delimiterRange, range).length) {
+            //找出第一个和分隔符的交集的位置，如果该位置小于当前操作的range，应该分隔符的location作为新location
+                if (delimiterRange.location < newRange.location) {
+                    newRange.location = delimiterRange.location;
+                }
+                *stop = YES;
+            }
+        }];
+        
+        
+        __block NSUInteger deletedDelimiterLenth = 0;
+        [allDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSRange delimiterRange = NSRangeFromString(obj);
+            if (NSIntersectionRange(delimiterRange, range).length) {
+            //找出最后一个有交集的分隔符的endLocation,如果改endLocation位置大于当前操作的range的endLocation，用该endLocation作为新的range的endLocation
+                if (delimiterRange.location+delimiterRange.length > newRange.location+newRange.length) {
+                    newRange.length = (delimiterRange.location+delimiterRange.length - newRange.location);
                     
                 }
-            }];
-            //将倒序的ranges正序排列
-            [allDelimiterRanges addObjectsFromArray:partSecondReverseDelimiterRealRanges.reverseObjectEnumerator.allObjects];
-            //当用户删除或者替换的range包含分隔符，将整个分隔符一起替换，所以将重新计算range
-            __block NSRange newRange = range;
-            [allDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSRange delimiterRange = NSRangeFromString(obj);
-                if (NSIntersectionRange(delimiterRange, range).length) {
-                //找出第一个和分隔符的交集的位置，如果该位置小于当前操作的range，应该分隔符的location作为新location
-                    if (delimiterRange.location < newRange.location) {
-                        newRange.location = delimiterRange.location;
-                    }
-                    *stop = YES;
-                }
-            }];
-            
-            
-            __block NSUInteger deletedDelimiterLenth = 0;
-            [allDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSRange delimiterRange = NSRangeFromString(obj);
-                if (NSIntersectionRange(delimiterRange, range).length) {
-                //找出最后一个有交集的分隔符的endLocation,如果改endLocation位置大于当前操作的range的endLocation，用该endLocation作为新的range的endLocation
-                    if (delimiterRange.location+delimiterRange.length > newRange.location+newRange.length) {
-                        newRange.length = (delimiterRange.location+delimiterRange.length - newRange.location);
-                        
-                    }
-                    deletedDelimiterLenth += [mayDelimiterText substringWithRange:delimiterRange].length;
-                }
-            }];
-            //因为是对去掉分隔符的text进行操作，所以找出修改区域的分隔符，去掉其长度
-            newRange.length -= deletedDelimiterLenth;
-            
-            NSString *frontRealText = [mayDelimiterText substringToIndex:range.location];
-            //还要找出操作range之前里面的分隔符总长度并去掉，算出该range的准确location
-            [allDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSRange range = NSRangeFromString(obj);
-                if (range.location+range.length <= frontRealText.length) {
-                    newRange.location -= [frontRealText substringWithRange:range].length;
-                }
-            }];
-            
-            [text replaceCharactersInRange:newRange withString:string];
-            
-            
-            if (textField.lb_maxLength && (text.length>textField.lb_maxLength.integerValue)) {
-                text = [text substringToIndex:textField.lb_maxLength.integerValue].mutableCopy;
+                deletedDelimiterLenth += [mayDelimiterText substringWithRange:delimiterRange].length;
             }
-            
-            
-            //重新排列新字符串
-            [textField.partFirstDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSRange range = NSRangeFromString(obj);
-                if (range.location < text.length) {
-                    [text insertString:textField.partFirstDelimiters[idx] atIndex:range.location];
-                }
-            }];
-            
-            
-            
-            [textField.partSecondReverseDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSRange range = NSRangeFromString(obj);
-                NSUInteger location = text.length-range.location;
-                NSInteger partFirstLenght = (partFirstLastDeliniterRange.location+partFirstLastDeliniterRange.length)+range.location;
-                if (text.length > partFirstLenght) {
-                    [text insertString:textField.partSecondReverseDelimiters[idx] atIndex:location];
-                }
-            }];
-            
-            //重新赋值新的带分隔符的text
-            textField.text = text;
-            
-            UITextPosition *newPosition = [textField positionFromPosition:position offset:text.length-mayDelimiterText.length];
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                textField.selectedTextRange = [textField textRangeFromPosition:newPosition toPosition:newPosition];
-            });
-            [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
-            return NO;
+        }];
+        //因为是对去掉分隔符的text进行操作，所以找出修改区域的分隔符，去掉其长度
+        newRange.length -= deletedDelimiterLenth;
+        
+        NSString *frontRealText = [mayDelimiterText substringToIndex:range.location];
+        //还要找出操作range之前里面的分隔符总长度并去掉，算出该range的准确location
+        [allDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSRange range = NSRangeFromString(obj);
+            if (range.location+range.length <= frontRealText.length) {
+                newRange.location -= [frontRealText substringWithRange:range].length;
+            }
+        }];
+        
+        [text replaceCharactersInRange:newRange withString:string];
+        
+        
+        if (textField.lb_maxLength && (text.length>textField.lb_maxLength.integerValue)) {
+            text = [text substringToIndex:textField.lb_maxLength.integerValue].mutableCopy;
         }
-        else if (textField.lb_maxLength && ([text stringByReplacingCharactersInRange:range withString:string].length > textField.lb_maxLength.integerValue)){//输入的时候长度大于限制长度
-            UITextPosition *position =textField.selectedTextRange.start;
+        
+        
+        //重新排列新字符串
+        [textField.partFirstDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSRange range = NSRangeFromString(obj);
+            if (range.location < text.length) {
+                [text insertString:textField.partFirstDelimiters[idx] atIndex:range.location];
+            }
+        }];
+        
+        
+        
+        [textField.partSecondReverseDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSRange range = NSRangeFromString(obj);
+            NSUInteger location = text.length-range.location;
+            NSInteger partFirstLenght = (partFirstLastDeliniterRange.location+partFirstLastDeliniterRange.length)+range.location;
+            if (text.length > partFirstLenght) {
+                [text insertString:textField.partSecondReverseDelimiters[idx] atIndex:location];
+            }
+        }];
+        
+        //重新赋值新的带分隔符的text
+        textField.text = text;
+        
+        UITextPosition *newPosition = [textField positionFromPosition:position offset:text.length-mayDelimiterText.length];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            textField.selectedTextRange = [textField textRangeFromPosition:newPosition toPosition:newPosition];
+        });
+        [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
+        return NO;
+    }
+    else if (textField.lb_maxLength && ([text stringByReplacingCharactersInRange:range withString:string].length > textField.lb_maxLength.integerValue)){//输入的时候长度大于限制长度
+        UITextPosition *position =textField.selectedTextRange.start;
 
-            
-            NSUInteger differLength = textField.lb_maxLength.integerValue-[text stringByReplacingCharactersInRange:range withString:@""].length;
-            textField.text = [text stringByReplacingCharactersInRange:range withString:[string substringToIndex:differLength]];
-            
-            UITextPosition *aNewPosition = [textField positionFromPosition:position offset:differLength];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                textField.selectedTextRange = [textField textRangeFromPosition:aNewPosition toPosition:aNewPosition];
-            });
-            [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
-            return NO;
-        }
+        
+        NSUInteger differLength = textField.lb_maxLength.integerValue-[text stringByReplacingCharactersInRange:range withString:@""].length;
+        textField.text = [text stringByReplacingCharactersInRange:range withString:[string substringToIndex:differLength]];
+        
+        UITextPosition *aNewPosition = [textField positionFromPosition:position offset:differLength];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            textField.selectedTextRange = [textField textRangeFromPosition:aNewPosition toPosition:aNewPosition];
+        });
+        [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
+        return NO;
     }
     return YES;
 }
-@end
-
-@implementation UIResponder (TextFieldDelegateResolveInvocation)
--(BOOL)respondsToSelector:(SEL)aSelector{
-    if (aSelector == @selector(textField:shouldChangeCharactersInRange:replacementString:)) {
-        
-        return [super respondsToSelector:aSelector]
-        ||[LBTextField respondsToSelector:aSelector];
-        
+//如果本类没实现的代理方法由realProxy实现
+- (BOOL)respondsToSelector:(SEL)aSelector{
+    BOOL respondsSelector = [super respondsToSelector:aSelector];
+    if (!respondsSelector && [self.realProxy respondsToSelector:aSelector]) {
+        return YES;
     }
-    return [super respondsToSelector:aSelector];
+    return respondsSelector;
 }
-//当delegate未实现代理方法的时候让LBTextField类方法实现
 - (id)forwardingTargetForSelector:(SEL)aSelector
 {
-    if (aSelector == @selector(textField:shouldChangeCharactersInRange:replacementString:)) {
-        
-        if (![super respondsToSelector:aSelector] && [LBTextField respondsToSelector:aSelector]) {
-            
-            return LBTextField.self;
-            
-        }
+    if (![super respondsToSelector:aSelector] && [self.realProxy respondsToSelector:aSelector]) {
+        return self.realProxy;
     }
     return [super forwardingTargetForSelector: aSelector];
 }
-
 @end

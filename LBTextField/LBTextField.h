@@ -33,7 +33,6 @@ typedef NS_ENUM(NSUInteger, LBInputType) {
 @property(nonatomic,strong)NSArray<NSString *> *unablePerformActions;//不响应的方法列表 (例如：NSStringFromSelector(@selector(paste:))--->禁止粘贴)
 
 -(NSString *)mayDelimiterText;//可能有分隔符号的原text
-+(BOOL)textField:(LBTextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string;
 @end
 
 

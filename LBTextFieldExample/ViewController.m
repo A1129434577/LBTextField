@@ -8,7 +8,7 @@
 
 #import "ViewController.h"
 #import "LBTextField.h"
-@interface ViewController ()<UITextFieldDelegate>
+@interface ViewController ()
 
 @end
 
@@ -23,7 +23,6 @@
     textField.layer.borderColor = [UIColor grayColor].CGColor;
     textField.layer.cornerRadius = 10;
     textField.layer.borderWidth = 1;
-    textField.delegate = self;//必须设置
     textField.placeholder = @"请输入手机号";
     textField.lb_maxLength = @11;
     textField.lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"[0-9]*"];//只能输入数字 ＝ textField.keyboardType = UIKeyboardTypeNumberPad;
@@ -32,6 +31,4 @@
     textField.lb_textFormatter = @[@3,@" ",@4,@" ",@4];//比如188 8888 8888
     [self.view addSubview:textField];
 }
-
-
 @end
