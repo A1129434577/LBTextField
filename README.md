@@ -7,4 +7,4 @@ textField.lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@"
 //textField.lb_inputType = LBMobileInput;//以上所有自定义的设置你也可以快捷的直接设置type为LBMobileInput
 textField.lb_textFormatter = @[@3,@" ",@4,@" ",@4];//比如188 8888 8888
 ```
-![images](https://img-blog.csdn.net/20180424175304251)
+![](https://github.com/A1129434577/LBTextField/blob/master/LBTextField.gif?raw=true)
