@@ -346,7 +346,7 @@
         return NO;
     }
     else if (textField.lb_textFormatter){
-        UITextPosition *position =textField.selectedTextRange.start;
+        UITextPosition *position =textField.selectedTextRange.end;
         
         //textField的原text
         NSString *mayDelimiterText = [textField mayDelimiterText];
