@@ -36,6 +36,8 @@
     if (self) {
         self.clearButtonMode = UITextFieldViewModeWhileEditing;
         [super setDelegate:self];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textDidChange) name:UITextFieldTextDidChangeNotification object:self];
     }
     return self;
 }
@@ -342,7 +344,10 @@
     if (string.length && (textField.lb_inputPredicate && ![textField.lb_inputPredicate evaluateWithObject:string])) {//输入的格式不符合限制输入
         return NO;
     }
-    else if (string.length && textField.lb_maxLength && (text.length == textField.lb_maxLength.integerValue)){//输入的时候长度已满限制输入
+    else if (string.length && textField.lb_maxLength && (text.length >= textField.lb_maxLength.integerValue)){//输入的时候长度已满限制输入
+        if (text.length > textField.lb_maxLength.integerValue) {
+            textField.text = [text substringToIndex:textField.lb_maxLength.integerValue];
+        }
         return NO;
     }
     else if (textField.lb_textFormatter){
@@ -464,6 +469,15 @@
         return NO;
     }
     return YES;
+}
+-(void)textDidChange{//ios13之前系统键盘联想出来的字符输入不会走shouldChangeCharactersInRange代理方法，所以需要该方法容错支撑
+    if (self.lb_maxLength && (self.text.length > self.lb_maxLength.integerValue)){//输入的时候长度已满切断
+        self.text = [self.text substringToIndex:self.lb_maxLength.integerValue];
+    }
+}
+
+-(void)dealloc{
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 //如果本类没实现的代理方法由realProxy实现
 - (BOOL)respondsToSelector:(SEL)aSelector{
