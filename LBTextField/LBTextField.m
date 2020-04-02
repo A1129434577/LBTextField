@@ -45,6 +45,10 @@
     self.realProxy = delegate;
     [super setDelegate:self];
 }
+-(void)setText:(NSString *)text{
+    [super setText:text];
+    [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:self];
+}
 
 -(void)setLb_textFormatter:(NSArray *)lb_textFormatter{
     _lb_textFormatter = lb_textFormatter;
