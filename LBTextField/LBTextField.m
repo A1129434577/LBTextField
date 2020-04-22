@@ -436,12 +436,12 @@
             text = [text substringToIndex:textField.lb_maxLength.integerValue].mutableCopy;
         }
         
-        
+        __weak typeof(textField) weakTextField = textField;
         //重新排列新字符串
         [textField.partFirstDelimiterRanges enumerateObjectsUsingBlock:^(NSString * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             NSRange range = NSRangeFromString(obj);
             if (range.location < text.length) {
-                [text insertString:textField.partFirstDelimiters[idx] atIndex:range.location];
+                [text insertString:weakTextField.partFirstDelimiters[idx] atIndex:range.location];
             }
         }];
         
@@ -452,7 +452,7 @@
             NSUInteger location = text.length-range.location;
             NSInteger partFirstLenght = (partFirstLastDeliniterRange.location+partFirstLastDeliniterRange.length)+range.location;
             if (text.length > partFirstLenght) {
-                [text insertString:textField.partSecondReverseDelimiters[idx] atIndex:location];
+                [text insertString:weakTextField.partSecondReverseDelimiters[idx] atIndex:location];
             }
         }];
         
