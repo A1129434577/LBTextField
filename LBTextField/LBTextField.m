@@ -20,6 +20,8 @@
 @property (nonatomic,strong)NSMutableArray<NSString *> *partFirstDelimiterRanges;
 @property (nonatomic,strong)NSMutableArray<NSString *> *partSecondReverseDelimiterRanges;////格式化输入的时候需要插入分隔符的range
 
+@property (nonatomic, strong) NSString *currentChangedRange;
+@property (nonatomic, strong) NSString *currentChangedString;
 @end
 
 @implementation LBTextField
@@ -333,6 +335,9 @@
 }
 
 -(BOOL)textField:(LBTextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string{
+    self.currentChangedRange = NSStringFromRange(range);
+    self.currentChangedString = string;
+    
     //如果真实代理实现了这个代理方法优先考虑真实代理的返回值，所谓用者至上
     if ([self.realProxy respondsToSelector:@selector(textField:shouldChangeCharactersInRange:replacementString:)]) {
         BOOL realProxyReturnVuale = [self.realProxy textField:textField shouldChangeCharactersInRange:range replacementString:string];
@@ -340,15 +345,19 @@
             return realProxyReturnVuale;
         }
     }
+    
+    if (textField.markedTextRange!=nil) {
+        return YES;
+    }
+    
     //@INT_MAX之前的称为第一部分
     //1.转移操作对象到没有分隔符的text上
     //2.再将没有分隔符的text加上分隔符赋值给textField
     __block NSMutableString *text = textField.text.mutableCopy;
     
-    if (string.length && (textField.lb_inputPredicate && ![textField.lb_inputPredicate evaluateWithObject:string])) {//输入的格式不符合限制输入
-        return NO;
-    }
-    else if (string.length && textField.lb_maxLength && (text.length >= textField.lb_maxLength.integerValue)){//输入的时候长度已满限制输入
+    if (string.length &&
+        textField.lb_maxLength &&
+        (text.length >= textField.lb_maxLength.integerValue)){//输入的时候长度已满限制输入
         if (text.length > textField.lb_maxLength.integerValue) {
             textField.text = [text substringToIndex:textField.lb_maxLength.integerValue];
         }
@@ -475,8 +484,22 @@
     return YES;
 }
 -(void)textDidChange{//ios13之前系统键盘联想出来的字符输入不会走shouldChangeCharactersInRange代理方法，所以需要该方法容错支撑
-    if (self.lb_maxLength && (self.text.length > self.lb_maxLength.integerValue)){//输入的时候长度已满切断
-        self.text = [self.text substringToIndex:self.lb_maxLength.integerValue];
+    
+    if (self.markedTextRange == nil) {
+        if (self.currentChangedRange) {
+            NSRange range = NSRangeFromString(self.currentChangedRange);
+            self.currentChangedRange = nil;
+            if (self.currentChangedString.length && (self.lb_inputPredicate && ![self.lb_inputPredicate evaluateWithObject:self.currentChangedString])) {//输入的格式不符合限制输入
+                if (range.location+self.currentChangedString.length<=super.text.length &&
+                    [[super.text substringWithRange:NSMakeRange(range.location, self.currentChangedString.length)] isEqualToString:self.currentChangedString]) {
+                    self.text = [super.text stringByReplacingCharactersInRange:NSMakeRange(range.location, self.currentChangedString.length) withString:@""];
+                }
+            }
+        }
+        
+        if (self.lb_maxLength && (self.text.length > self.lb_maxLength.integerValue)){//输入的时候长度已满切断
+            self.text = [self.text substringToIndex:self.lb_maxLength.integerValue];
+        }
     }
 }
 
