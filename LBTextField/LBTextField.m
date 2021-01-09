@@ -122,6 +122,9 @@
     if (keyboardType == UIKeyboardTypeNumberPad) {
         _lb_inputPredicate?NULL:(_lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"[0-9]*"]);
     }
+    else if (keyboardType == UIKeyboardTypeDecimalPad){
+        _lb_inputPredicate?NULL:(_lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"[.0-9]*"]);
+    }
 }
 
 -(BOOL)canPerformAction:(SEL)action withSender:(id)sender{
@@ -480,6 +483,21 @@
         });
         [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
         return NO;
+    }
+    
+    if (string.length && textField.lb_inputType == LBMoneyInput){//金额输入的时候特殊处理
+        if ([textField.text isEqualToString:@"0"] && ![string isEqualToString:@"."]) {
+            return NO;
+        }else if (!textField.text.length && [string isEqualToString:@"."]){
+            textField.text = @"0";
+            return YES;
+        }else if ([textField.text rangeOfString:@"."].length){
+            if ([[textField.text componentsSeparatedByString:@"."] lastObject].length >=2) {
+                return NO;
+            }else if ([string isEqualToString:@"."]){
+                return NO;
+            }
+        }
     }
     return YES;
 }
