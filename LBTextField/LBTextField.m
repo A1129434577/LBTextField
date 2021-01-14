@@ -195,7 +195,7 @@
             break;
         case LBPercentInput:
             if (_lb_maxLength == nil) {
-                _lb_maxLength = @(3);
+                _lb_maxLength = @(4);
             }
             if (_lb_textPredicate == nil) {
                 _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^(\\d?\\d(\\.\\d*)?|100)$"];
