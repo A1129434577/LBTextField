@@ -526,7 +526,9 @@
         return NO;
     }
     
-    if (string.length && textField.lb_inputType == LBMoneyInput){//金额输入的时候特殊处理
+    if (string.length &&
+        (textField.lb_inputType == LBMoneyInput ||
+         textField.lb_inputType == LBPercentInput)){//金额输入的时候特殊处理
         if ([textField.text isEqualToString:@"0"] && ![string isEqualToString:@"."]) {
             return NO;
         }else if (!textField.text.length && [string isEqualToString:@"."]){
