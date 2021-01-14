@@ -120,10 +120,14 @@
 -(void)setKeyboardType:(UIKeyboardType)keyboardType{
     [super setKeyboardType:keyboardType];
     if (keyboardType == UIKeyboardTypeNumberPad) {
-        _lb_inputPredicate?NULL:(_lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"[0-9]*"]);
+        if (_lb_inputPredicate == nil) {
+            _lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"[0-9]*"];
+        }
     }
     else if (keyboardType == UIKeyboardTypeDecimalPad){
-        _lb_inputPredicate?NULL:(_lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"[.0-9]*"]);
+        if (_lb_inputPredicate == nil) {
+            _lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"[.0-9]*"];
+        }
     }
 }
 
@@ -141,7 +145,9 @@
         case LBPayPasswordInput:
         case LBCVV2Input:
         case LBIndateInput:
-            _lb_textPredicate?NULL:(_lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", [NSString stringWithFormat:@"\\d{%lu}",_lb_maxLength.unsignedIntegerValue]]);
+            if (_lb_textPredicate == nil) {
+                _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", [NSString stringWithFormat:@"\\d{%lu}",_lb_maxLength.unsignedIntegerValue]];
+            }
             break;
         default:
             break;
@@ -152,40 +158,75 @@
     _lb_inputType = lb_inputType;
     switch (lb_inputType) {
         case LBMobileInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(11));
-            _lb_textPredicate?NULL:(_lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", @"^1(\\d{10})"]);
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(11);
+            }
+            if (_lb_textPredicate == nil) {
+                _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", @"^1(\\d{10})"];
+            }
             break;
         case LBBankCardInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(20));
-            _lb_textPredicate?NULL:(_lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^(\\d{14,20})"]);
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(20);
+            }
+            if (_lb_textPredicate == nil) {
+                _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^(\\d{14,20})"];
+            }
             break;
         case LBCVV2Input:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(3));
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(3);
+            }
             break;
         case LBCodeInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(6));
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(6);
+            }
             break;
         case LBPayPasswordInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(6));
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(6);
+            }
             break;
         case LBIndateInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(4));
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(4);
+            }
             break;
         case LBPercentInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(3));
-            _lb_textPredicate?NULL:(_lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^(\\d?\\d(\\.\\d*)?|100)$"]);
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(3);
+            }
+            if (_lb_textPredicate == nil) {
+                _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^(\\d?\\d(\\.\\d*)?|100)$"];
+            }
             break;
         case LBMoneyInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(15));
-            _lb_textPredicate?NULL:(_lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^[0-9]+(.[0-9]{1,2})?$"]);
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(15);
+            }
+            if (_lb_textPredicate == nil) {
+                _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^[0-9]+(.[0-9]{1,2})?$"];
+            }
             break;
         case LBPasswordInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(16));
-            _lb_textPredicate?NULL:(_lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", @"^(?![a-zA-Z0-9]+$)(?![^a-zA-Z/D]+$)(?![^0-9/D]+$).{8,16}$"]);
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(16);
+            }
+            if (_lb_textPredicate == nil) {
+                _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", @"^(?![a-zA-Z0-9]+$)(?![^a-zA-Z/D]+$)(?![^0-9/D]+$).{8,16}$"];
+            }
             break;
         case LBIDCardInput:
-            _lb_maxLength?NULL:(self.lb_maxLength = @(18));
-            _lb_textPredicate?NULL:(_lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^(\\d{14}|\\d{17})(\\d|[xX])$"]);
+            if (_lb_maxLength == nil) {
+                _lb_maxLength = @(18);
+            }
+            if (_lb_inputPredicate == nil) {
+                _lb_inputPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^[a-zA-Z0-9]*$"];
+            }
+            if (_lb_textPredicate == nil) {
+                _lb_textPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@",@"^(\\d{14}|\\d{17})(\\d|[xX])$"];
+            }
             break;
         default:
             break;
