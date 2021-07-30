@@ -379,8 +379,14 @@
 }
 
 -(BOOL)textField:(LBTextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string{
+    __block NSMutableString *text = textField.text.mutableCopy;
+    
     self.currentChangedRange = NSStringFromRange(range);
     self.currentChangedString = string;
+    if (self.lb_maxLength && [text stringByReplacingCharactersInRange:range withString:string].length>self.lb_maxLength.integerValue) {
+        //当前输入的加上之前的text超过maxLength的时候由于要被截取，所以实际的currentChangedString要比当前输入的短
+        self.currentChangedString = [string substringToIndex:self.lb_maxLength.integerValue-text.length];
+    }
     
     //如果真实代理实现了这个代理方法优先考虑真实代理的返回值，所谓用者至上
     if ([self.realProxy respondsToSelector:@selector(textField:shouldChangeCharactersInRange:replacementString:)]) {
@@ -397,7 +403,6 @@
     //@INT_MAX之前的称为第一部分
     //1.转移操作对象到没有分隔符的text上
     //2.再将没有分隔符的text加上分隔符赋值给textField
-    __block NSMutableString *text = textField.text.mutableCopy;
     
     if (string.length &&
         textField.lb_maxLength &&
@@ -512,16 +517,15 @@
         return NO;
     }
     else if (textField.lb_maxLength && ([text stringByReplacingCharactersInRange:range withString:string].length > textField.lb_maxLength.integerValue)){//输入的时候长度大于限制长度
-        UITextPosition *position =textField.selectedTextRange.start;
-
+//        UITextPosition *position =textField.selectedTextRange.start;
         
         NSUInteger differLength = textField.lb_maxLength.integerValue-[text stringByReplacingCharactersInRange:range withString:@""].length;
         textField.text = [text stringByReplacingCharactersInRange:range withString:[string substringToIndex:differLength]];
         
-        UITextPosition *aNewPosition = [textField positionFromPosition:position offset:differLength];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            textField.selectedTextRange = [textField textRangeFromPosition:aNewPosition toPosition:aNewPosition];
-        });
+//        UITextPosition *aNewPosition = [textField positionFromPosition:position offset:differLength];
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            textField.selectedTextRange = [textField textRangeFromPosition:aNewPosition toPosition:aNewPosition];
+//        });
         [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
         return NO;
     }
