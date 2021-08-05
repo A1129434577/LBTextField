@@ -39,7 +39,7 @@
         self.clearButtonMode = UITextFieldViewModeWhileEditing;
         [super setDelegate:self];
         
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textDidChange) name:UITextFieldTextDidChangeNotification object:self];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textDidChange:) name:UITextFieldTextDidChangeNotification object:self];
     }
     return self;
 }
@@ -379,18 +379,16 @@
 }
 
 -(BOOL)textField:(LBTextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string{
-    __block NSMutableString *text = textField.text.mutableCopy;
     
-    self.currentChangedRange = NSStringFromRange(range);
-    self.currentChangedString = string;
-    if (self.lb_maxLength && [text stringByReplacingCharactersInRange:range withString:string].length>self.lb_maxLength.integerValue) {
-        //当前输入的加上之前的text超过maxLength的时候由于要被截取，所以实际的currentChangedString要比当前输入的短
-        self.currentChangedString = [string substringToIndex:self.lb_maxLength.integerValue-text.length];
+    if (textField.lb_textFormatter == nil) {
+        //当有lb_textFormatter的时候因为又要进行手动添加分隔符，所以无法判断真正的replacementString
+        textField.currentChangedRange = NSStringFromRange(range);
+        textField.currentChangedString = string;
     }
     
     //如果真实代理实现了这个代理方法优先考虑真实代理的返回值，所谓用者至上
-    if ([self.realProxy respondsToSelector:@selector(textField:shouldChangeCharactersInRange:replacementString:)]) {
-        BOOL realProxyReturnVuale = [self.realProxy textField:textField shouldChangeCharactersInRange:range replacementString:string];
+    if ([textField.realProxy respondsToSelector:@selector(textField:shouldChangeCharactersInRange:replacementString:)]) {
+        BOOL realProxyReturnVuale = [textField.realProxy textField:textField shouldChangeCharactersInRange:range replacementString:string];
         if (!realProxyReturnVuale) {
             return realProxyReturnVuale;
         }
@@ -400,6 +398,8 @@
         return YES;
     }
     
+    
+    __block NSMutableString *text = textField.text.mutableCopy;
     //@INT_MAX之前的称为第一部分
     //1.转移操作对象到没有分隔符的text上
     //2.再将没有分隔符的text加上分隔符赋值给textField
@@ -510,22 +510,31 @@
         
         UITextPosition *newPosition = [textField positionFromPosition:position offset:text.length-mayDelimiterText.length];
         
-        dispatch_async(dispatch_get_main_queue(), ^{
-            textField.selectedTextRange = [textField textRangeFromPosition:newPosition toPosition:newPosition];
-        });
+        if (newPosition) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                textField.selectedTextRange = [textField textRangeFromPosition:newPosition toPosition:newPosition];
+            });
+        }
+        
         [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
         return NO;
     }
     else if (textField.lb_maxLength && ([text stringByReplacingCharactersInRange:range withString:string].length > textField.lb_maxLength.integerValue)){//输入的时候长度大于限制长度
-//        UITextPosition *position =textField.selectedTextRange.start;
+        
+        textField.currentChangedString = [string substringToIndex:textField.lb_maxLength.integerValue-text.length];//当前输入的加上之前的text超过maxLength的时候由于要被截取，所以实际的currentChangedString要比当前输入的短
+        
+        UITextPosition *position =textField.selectedTextRange.start;
         
         NSUInteger differLength = textField.lb_maxLength.integerValue-[text stringByReplacingCharactersInRange:range withString:@""].length;
         textField.text = [text stringByReplacingCharactersInRange:range withString:[string substringToIndex:differLength]];
         
-//        UITextPosition *aNewPosition = [textField positionFromPosition:position offset:differLength];
-//        dispatch_async(dispatch_get_main_queue(), ^{
-//            textField.selectedTextRange = [textField textRangeFromPosition:aNewPosition toPosition:aNewPosition];
-//        });
+        UITextPosition *aNewPosition = [textField positionFromPosition:position offset:differLength];
+        if (aNewPosition) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                textField.selectedTextRange = [textField textRangeFromPosition:aNewPosition toPosition:aNewPosition];
+            });
+        }
+        
         [[NSNotificationCenter defaultCenter] postNotificationName:UITextFieldTextDidChangeNotification object:textField];
         return NO;
     }
@@ -548,22 +557,22 @@
     }
     return YES;
 }
--(void)textDidChange{//ios13之前系统键盘联想出来的字符输入不会走shouldChangeCharactersInRange代理方法，所以需要该方法容错支撑
-    
-    if (self.markedTextRange == nil) {
-        if (self.currentChangedRange) {
-            NSRange range = NSRangeFromString(self.currentChangedRange);
-            self.currentChangedRange = nil;
-            if (self.currentChangedString.length && (self.lb_inputPredicate && ![self.lb_inputPredicate evaluateWithObject:self.currentChangedString])) {//输入的格式不符合限制输入
-                if (range.location+self.currentChangedString.length<=super.text.length &&
-                    [[super.text substringWithRange:NSMakeRange(range.location, self.currentChangedString.length)] isEqualToString:self.currentChangedString]) {
-                    self.text = [super.text stringByReplacingCharactersInRange:NSMakeRange(range.location, self.currentChangedString.length) withString:@""];
+-(void)textDidChange:(NSNotification *)notificaion{//ios13之前系统键盘联想出来的字符输入不会走shouldChangeCharactersInRange代理方法，所以需要该方法容错支撑
+    LBTextField *textField = notificaion.object;
+    if (textField.markedTextRange == nil) {
+        if (textField.currentChangedRange) {
+            NSRange range = NSRangeFromString(textField.currentChangedRange);
+            textField.currentChangedRange = nil;
+            if (textField.currentChangedString.length && (textField.lb_inputPredicate && ![textField.lb_inputPredicate evaluateWithObject:textField.currentChangedString])) {//输入的格式不符合限制输入
+                if (range.location+textField.currentChangedString.length<=textField.mayDelimiterText.length &&
+                    [[textField.mayDelimiterText substringWithRange:NSMakeRange(range.location, textField.currentChangedString.length)] isEqualToString:textField.currentChangedString]) {
+                    textField.text = [textField.mayDelimiterText stringByReplacingCharactersInRange:NSMakeRange(range.location, textField.currentChangedString.length) withString:@""];
                 }
             }
         }
         
-        if (self.lb_maxLength && (self.text.length > self.lb_maxLength.integerValue)){//输入的时候长度已满切断
-            self.text = [self.text substringToIndex:self.lb_maxLength.integerValue];
+        if (textField.lb_maxLength && (textField.text.length > textField.lb_maxLength.integerValue)){//输入的时候长度已满切断
+            textField.text = [textField.text substringToIndex:textField.lb_maxLength.integerValue];
         }
     }
 }
